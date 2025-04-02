@@ -1,0 +1,16 @@
+{
+    "factoryAddress": "0x9da1886dE4Ac13f8F474a6C8D4e78234c5DD097f",
+    "tokenSoldAddress": "0x309C92261178fA0CF748A855e90Ae73FDb79EBc7",
+    "acceptedTokenAddress": "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38",
+    "raisePricePerTokenScaled": "10000000000000000",
+    "presaleStartOffset": "3600",
+    "publicSaleStartOffset": "7200",
+    "endOffset": "604800",
+    "merkleRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "raiseOwnerAddress": "0x625ae2Ab62E57e0D2EfbfA56a3FcC5188424E84c",
+    "feeRecipientAddress": "0x625ae2Ab62E57e0D2EfbfA56a3FcC5188424E84c",
+    "feeBps": "500",
+    "maxRaiseAcceptedScaled": "100000000000000000000",
+    "minAllocTokenScaled": "1000000000000000000",
+    "maxAllocTokenScaled": "10000000000000000000"
+  }

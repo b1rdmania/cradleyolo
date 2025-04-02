@@ -2,5 +2,21 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+via_ir = true # Keep this enabled
+# Ensure you have remappings if not default
+remappings = ['@openzeppelin/=lib/openzeppelin-contracts/']
+
+# Add RPC endpoints section
+[rpc_endpoints]
+localAnvil = "http://127.0.0.1:8545" # Example for local
+sonicTestnet = "https://sonic-testnet.drpc.org"
+
+# Add Etherscan config for Sonic Testnet
+# [etherscan]
+# sonicTestnet = { key = "${ETHERSCAN_API_KEY}", chain = 57054, url = "https://api-testnet.sonicscan.org/api" }
+
+# Add foundry.toml#Chain Configuration if needed (usually for fork testing, might not be required just for deployment)
+# [rpc_storage_caching]
+# chains = "all"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
