@@ -23,10 +23,10 @@ Cradle is envisioned as a permissionless, tokenless launchpad built for clean, f
 
 ## 📍 Current Sonic Testnet Deployments (as of 2025-04-02)
 
-*   **Mock Token Sold (`mTKN`):** `0x06726427c7326d9AB606D1E81A036D041CEcbdcD`
-*   **Mock Accepted Token (`mUSDC`):** `0x1B0E3F92A3bFE3648414DC267c99b3dA59DDb7ed`
+*   **Mock Token Sold (`mTKN`):** `0x06726427c7326d9AB606D1E81A036D041CEcbdcD` (18 decimals)
+*   **Wrapped Sonic (`WS`):** `0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38` (18 decimals) - *Used as the accepted token.*
 *   **Cradle Factory:** `0x8BAE780580c388f6F7eDA2d6a96D5cD6B0ebDbcF`
-*   **Example Cradle Raise:** `0x60F23bF90714639D7CC6959e143faC086145B102`
+*   **Example Cradle Raise (Accepts WS):** `0x6226356cA224cD55d5f4Fec2B51B89d57cf98060`
 
 *(These addresses are also reflected in the committed `.env` file, excluding the private key)*
 
