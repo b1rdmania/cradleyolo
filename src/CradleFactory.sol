@@ -13,7 +13,6 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
  * and keeps a registry of all deployed instances. V1 deployment is restricted to the factory owner.
  */
 contract CradleFactory is Ownable {
-
     // --- State Variables ---
 
     /**
@@ -83,7 +82,8 @@ contract CradleFactory is Ownable {
         uint256 _maxAcceptedTokenRaise,
         uint256 _minTokenAllocation,
         uint256 _maxTokenAllocation
-    ) external onlyOwner returns (address newRaiseAddress) { // Added explicit return variable name
+    ) external onlyOwner returns (address newRaiseAddress) {
+        // Added explicit return variable name
         // Basic input validation - ensure the designated owner for the raise is not the zero address.
         // Most parameter validation happens within the CradleRaise constructor itself.
         if (_raiseOwner == address(0)) {
@@ -139,4 +139,4 @@ contract CradleFactory is Ownable {
 
     // Note: Includes standard Ownable functions like owner() and transferOwnership(...)
     // These inherit NatSpec from OpenZeppelin's Ownable contract.
-} 
+}

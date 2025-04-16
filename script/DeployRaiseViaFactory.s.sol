@@ -29,7 +29,6 @@ import {StdUtils} from "forge-std/StdUtils.sol"; // For parsing bytes32
  *  - RAISE_MAX_ALLOC_TOKEN_NATIVE (human-readable, e.g., "1000" for 1000 TokenSold)
  */
 contract DeployRaiseViaFactory is Script {
-
     // Default LOCAL Anvil addresses (Update if mocks are redeployed locally)
     address constant LOCAL_FACTORY_ADDRESS = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
     address constant LOCAL_TOKEN_SOLD_ADDRESS = 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512; // Mock TKN
@@ -52,7 +51,8 @@ contract DeployRaiseViaFactory is Script {
         address deployerAddress;
 
         // Determine network and select appropriate key and default addresses
-        if (block.chainid == 57054) { // Sonic Testnet
+        if (block.chainid == 57054) {
+            // Sonic Testnet
             console2.log("Targeting Sonic Testnet (Chain ID 57054)");
             deployerPrivateKey = vm.envUint("TESTNET_PRIVATE_KEY");
             if (deployerPrivateKey == 0) revert("TESTNET_PRIVATE_KEY env var not set for Sonic Testnet");
@@ -64,9 +64,10 @@ contract DeployRaiseViaFactory is Script {
             if (tokenSoldAddress == address(0)) revert("TOKEN_SOLD_ADDRESS env var not set for Sonic Testnet");
             if (acceptedTokenAddress == address(0)) revert("ACCEPTED_TOKEN_ADDRESS env var not set for Sonic Testnet");
             console2.log("Using Addresses from ENV for Testnet");
-        } else { // Default to local Anvil or other networks
+        } else {
+            // Default to local Anvil or other networks
             console2.log("Targeting local network (Chain ID: %s) or unknown network.", block.chainid);
-            uint256 localPrivateKey = vm.envUint("PRIVATE_KEY"); 
+            uint256 localPrivateKey = vm.envUint("PRIVATE_KEY");
             deployerPrivateKey = (localPrivateKey != 0) ? localPrivateKey : DEFAULT_ANVIL_PRIVATE_KEY;
             deployerAddress = vm.addr(deployerPrivateKey);
             factoryAddress = vm.envOr("FACTORY_ADDRESS", LOCAL_FACTORY_ADDRESS);
@@ -84,12 +85,12 @@ contract DeployRaiseViaFactory is Script {
         uint256 pricePerTokenScaled = vm.envUint("RAISE_PRICE_PER_TOKEN_SCALED");
         if (pricePerTokenScaled == 0) revert("RAISE_PRICE_PER_TOKEN_SCALED must be set in .env");
 
-        uint256 presaleStartOffset = vm.envUint("RAISE_PRESALE_START_OFFSET"); 
-        uint256 publicSaleStartOffset = vm.envUint("RAISE_PUBLICSALE_START_OFFSET"); 
+        uint256 presaleStartOffset = vm.envUint("RAISE_PRESALE_START_OFFSET");
+        uint256 publicSaleStartOffset = vm.envUint("RAISE_PUBLICSALE_START_OFFSET");
         uint256 endOffset = vm.envUint("RAISE_END_OFFSET");
         if (endOffset == 0) revert("RAISE_END_OFFSET must be set in .env");
 
-        bytes32 merkleRoot = vm.envBytes32("RAISE_MERKLE_ROOT"); 
+        bytes32 merkleRoot = vm.envBytes32("RAISE_MERKLE_ROOT");
 
         uint256 maxRaiseAcceptedScaled = vm.envUint("RAISE_MAX_RAISE_ACCEPTED_SCALED");
         if (maxRaiseAcceptedScaled == 0) revert("RAISE_MAX_RAISE_ACCEPTED_SCALED must be set in .env");
@@ -151,19 +152,19 @@ contract DeployRaiseViaFactory is Script {
         CradleRaise newRaise = CradleRaise(payable(newRaiseAddress));
 
         console2.log("--- Verifying Deployed Raise Parameters ---");
-        assert(address(newRaise.token()) == tokenSoldAddress);                // FIX: Cast IERC20 to address for comparison
-        assert(address(newRaise.acceptedToken()) == acceptedTokenAddress);      // FIX: Cast IERC20 to address for comparison
-        assert(newRaise.pricePerToken() == pricePerTokenScaled);                // Check Price
-        assert(newRaise.presaleStart() == presaleStartTime);                  // Check Presale Start Time
-        assert(newRaise.publicSaleStart() == publicSaleStartTime);              // Check Public Sale Start Time
-        assert(newRaise.endTime() == endTime);                              // Check End Time
-        assert(newRaise.merkleRoot() == merkleRoot);                        // Check Merkle Root
-        assert(newRaise.feeRecipient() == feeRecipient);                    // Check Fee Recipient
-        assert(newRaise.feePercentBasisPoints() == feeBps);                 // Check Fee Basis Points
-        assert(newRaise.maxAcceptedTokenRaise() == maxRaiseAcceptedScaled);     // Check Hard Cap
-        assert(newRaise.minTokenAllocation() == minAllocTokenScaled);         // FIX: Check Min Allocation (use correct getter)
-        assert(newRaise.maxTokenAllocation() == maxAllocTokenScaled);         // FIX: Check Max Allocation (use correct getter)
-        assert(newRaise.owner() == raiseOwner);                             // Check Owner
+        assert(address(newRaise.token()) == tokenSoldAddress); // FIX: Cast IERC20 to address for comparison
+        assert(address(newRaise.acceptedToken()) == acceptedTokenAddress); // FIX: Cast IERC20 to address for comparison
+        assert(newRaise.pricePerToken() == pricePerTokenScaled); // Check Price
+        assert(newRaise.presaleStart() == presaleStartTime); // Check Presale Start Time
+        assert(newRaise.publicSaleStart() == publicSaleStartTime); // Check Public Sale Start Time
+        assert(newRaise.endTime() == endTime); // Check End Time
+        assert(newRaise.merkleRoot() == merkleRoot); // Check Merkle Root
+        assert(newRaise.feeRecipient() == feeRecipient); // Check Fee Recipient
+        assert(newRaise.feePercentBasisPoints() == feeBps); // Check Fee Basis Points
+        assert(newRaise.maxAcceptedTokenRaise() == maxRaiseAcceptedScaled); // Check Hard Cap
+        assert(newRaise.minTokenAllocation() == minAllocTokenScaled); // FIX: Check Min Allocation (use correct getter)
+        assert(newRaise.maxTokenAllocation() == maxAllocTokenScaled); // FIX: Check Max Allocation (use correct getter)
+        assert(newRaise.owner() == raiseOwner); // Check Owner
 
         console2.log("Deployed Raise Parameters Verified Successfully.");
 
@@ -175,4 +176,4 @@ contract DeployRaiseViaFactory is Script {
 
         return newRaiseAddress;
     }
-} 
+}

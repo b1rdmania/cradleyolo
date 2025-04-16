@@ -292,18 +292,23 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         uint256 _maxAcceptedTokenRaise,
         uint256 _minTokenAllocation, // In token base units
         uint256 _maxTokenAllocation // In token base units
-    ) Ownable(_owner) { // Sets the initial owner to the provided _owner address
+    ) Ownable(_owner) {
+        // Sets the initial owner to the provided _owner address
         // --- Input Validation ---
         if (_token == address(0) || _acceptedToken == address(0)) revert ZeroAddressToken();
         if (_owner == address(0)) revert ZeroAddressOwner();
         if (_feeRecipient == address(0)) revert ZeroAddressFeeRecipient();
         // Ensure timestamps are chronological
-        if (!(_publicSaleStart >= _presaleStart && _endTime >= _publicSaleStart)) revert InvalidTimestamps(_presaleStart, _publicSaleStart, _endTime);
+        if (!(_publicSaleStart >= _presaleStart && _endTime >= _publicSaleStart)) {
+            revert InvalidTimestamps(_presaleStart, _publicSaleStart, _endTime);
+        }
         if (_maxAcceptedTokenRaise == 0) revert ZeroHardCap();
         if (_pricePerToken == 0) revert ZeroPrice();
         if (_feePercentBasisPoints > 10000) revert FeeTooHigh(_feePercentBasisPoints); // Max 100%
         if (_minTokenAllocation == 0) revert ZeroMinAllocation();
-        if (_maxTokenAllocation < _minTokenAllocation) revert MaxAllocationLessThanMin(_maxTokenAllocation, _minTokenAllocation);
+        if (_maxTokenAllocation < _minTokenAllocation) {
+            revert MaxAllocationLessThanMin(_maxTokenAllocation, _minTokenAllocation);
+        }
 
         // IERC20Metadata validation
         try IERC20Metadata(_token).decimals() returns (uint8 _decimals) {
@@ -311,7 +316,7 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         } catch {
             revert InvalidTokenInterface(_token);
         }
-        
+
         try IERC20Metadata(_acceptedToken).decimals() returns (uint8 _decimals) {
             if (_decimals == 0) revert InvalidTokenDecimals(_decimals);
         } catch {
@@ -350,7 +355,9 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         // 1. Check if sale is active and not finalized/cancelled
         uint256 currentTime = block.timestamp;
         // Sale is active between presaleStart (inclusive) and endTime (exclusive)
-        if (!(currentTime >= presaleStart && currentTime < endTime)) revert SaleNotActive(currentTime, presaleStart, endTime);
+        if (!(currentTime >= presaleStart && currentTime < endTime)) {
+            revert SaleNotActive(currentTime, presaleStart, endTime);
+        }
         // Cannot contribute if sale is finalized (normally or cancelled)
         if (isFinalized) revert SaleIsFinalizedOrCancelled();
 
@@ -358,7 +365,8 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         if (_tokenAmountToBuy < minTokenAllocation) revert BelowMinAllocation(_tokenAmountToBuy, minTokenAllocation);
 
         // 3. Check phase and validate Merkle proof if in presale
-        if (currentTime < publicSaleStart) { // Currently in presale phase
+        if (currentTime < publicSaleStart) {
+            // Currently in presale phase
             if (merkleRoot == bytes32(0)) revert PresaleNotEnabled(); // Revert if presale not configured but time is before public start
             // Calculate the leaf node for the sender
             bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
@@ -372,7 +380,9 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         // Calculate the user's total contribution if this one succeeds
         uint256 nextUserContribution = currentContribution + _tokenAmountToBuy;
         // Revert if this contribution would exceed the per-wallet maximum
-        if (nextUserContribution > maxTokenAllocation) revert ExceedsMaxAllocation(currentContribution, _tokenAmountToBuy, maxTokenAllocation);
+        if (nextUserContribution > maxTokenAllocation) {
+            revert ExceedsMaxAllocation(currentContribution, _tokenAmountToBuy, maxTokenAllocation);
+        }
 
         // 5. Calculate required `acceptedToken` amount using dynamic decimals
         uint256 requiredAcceptedToken = _calculateRequiredAcceptedToken(_tokenAmountToBuy);
@@ -380,7 +390,9 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         // 6. Check against hard cap
         uint256 nextTotalRaised = totalAcceptedTokenRaised + requiredAcceptedToken;
         // Revert if this contribution would exceed the overall hard cap
-        if (nextTotalRaised > maxAcceptedTokenRaise) revert ExceedsHardCap(totalAcceptedTokenRaised, requiredAcceptedToken, maxAcceptedTokenRaise);
+        if (nextTotalRaised > maxAcceptedTokenRaise) {
+            revert ExceedsHardCap(totalAcceptedTokenRaised, requiredAcceptedToken, maxAcceptedTokenRaise);
+        }
 
         // --- State Updates & Interactions ---
 
@@ -487,7 +499,11 @@ contract CradleRaise is Ownable, ReentrancyGuard {
      * @param _tokenAmountToBuy The amount of `token` (in base units) being purchased.
      * @return requiredAcceptedToken The calculated amount of `acceptedToken` (in base units) needed for the purchase.
      */
-    function _calculateRequiredAcceptedToken(uint256 _tokenAmountToBuy) internal view returns (uint256 requiredAcceptedToken) {
+    function _calculateRequiredAcceptedToken(uint256 _tokenAmountToBuy)
+        internal
+        view
+        returns (uint256 requiredAcceptedToken)
+    {
         // Fetch decimals for the token being SOLD dynamically
         uint8 tokenDecimals;
         try IERC20Metadata(address(token)).decimals() returns (uint8 _decimals) {
@@ -502,7 +518,7 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         uint256 numerator = mul(_tokenAmountToBuy, pricePerToken);
 
         // Calculate the denominator: 10**tokenDecimals (scale factor for whole token)
-        uint256 denominator = 10**tokenDecimals;
+        uint256 denominator = 10 ** tokenDecimals;
 
         // Calculate the final required amount in acceptedToken base units
         // Division truncates, which is the desired behavior here.
@@ -511,9 +527,8 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         // Ensure the result is non-zero if the input amount was non-zero
         // This primarily guards against extreme price/decimal mismatches leading to zero cost.
         if (requiredAcceptedToken == 0 && _tokenAmountToBuy > 0) {
-             revert ContributionCalculationZero(_tokenAmountToBuy);
+            revert ContributionCalculationZero(_tokenAmountToBuy);
         }
-
     }
 
     /**
@@ -534,4 +549,4 @@ contract CradleRaise is Ownable, ReentrancyGuard {
             revert("Multiplication overflow");
         }
     }
-} 
+}

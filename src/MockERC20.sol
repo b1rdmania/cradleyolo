@@ -53,7 +53,7 @@ contract MockERC20 is IERC20 {
     function transferFrom(address _sender, address _recipient, uint256 _amount) external returns (bool) {
         uint256 currentAllowance = allowances[_sender][msg.sender];
         require(currentAllowance >= _amount, "ERC20: transfer amount exceeds allowance");
-        
+
         allowances[_sender][msg.sender] -= _amount;
         balances[_sender] -= _amount;
         balances[_recipient] += _amount;

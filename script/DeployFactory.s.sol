@@ -13,30 +13,31 @@ import {CradleFactory} from "../src/CradleFactory.sol";
  *  - FACTORY_INITIAL_OWNER (address, defaults to deployer)
  */
 contract DeployFactory is Script {
-
     uint256 constant DEFAULT_ANVIL_PRIVATE_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
     function run() external returns (CradleFactory) {
         console2.log("--- Starting DeployFactory Script ---");
 
-        // --- Configuration --- 
+        // --- Configuration ---
         uint256 deployerPrivateKey;
         address initialOwner;
         address deployerAddress;
 
         // Determine network and select appropriate key
-        if (block.chainid == 57054) { // Sonic Testnet
+        if (block.chainid == 57054) {
+            // Sonic Testnet
             console2.log("Targeting Sonic Testnet (Chain ID 57054)");
             deployerPrivateKey = vm.envUint("TESTNET_PRIVATE_KEY");
             if (deployerPrivateKey == 0) revert("TESTNET_PRIVATE_KEY env var not set or invalid for Sonic Testnet");
             deployerAddress = vm.addr(deployerPrivateKey);
-        } else { // Default to local Anvil or other networks
+        } else {
+            // Default to local Anvil or other networks
             console2.log("Targeting local network (Chain ID: %s) or unknown network.", block.chainid);
-            uint256 localPrivateKey = vm.envUint("PRIVATE_KEY"); 
+            uint256 localPrivateKey = vm.envUint("PRIVATE_KEY");
             deployerPrivateKey = (localPrivateKey != 0) ? localPrivateKey : DEFAULT_ANVIL_PRIVATE_KEY;
-            deployerAddress = vm.addr(deployerPrivateKey); 
+            deployerAddress = vm.addr(deployerPrivateKey);
         }
-        
+
         console2.log("Using Deployer Address:", deployerAddress);
 
         // Determine initial owner: use env var if set, otherwise default to deployer
@@ -55,4 +56,4 @@ contract DeployFactory is Script {
 
         return factory;
     }
-} 
+}
