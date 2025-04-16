@@ -138,6 +138,12 @@ error MultiplicationOverflow(uint256 a, uint256 b);
 error ContributionCalculationZero(uint256 tokenAmountToBuy);
 
 /**
+ * @dev Reverts if the token interface is invalid.
+ * @param tokenAddress The address of the token for which the interface is invalid.
+ */
+error InvalidTokenInterface(address tokenAddress);
+
+/**
  * @title CradleRaise (V1)
  * @author Cradle Team (@CradleBuild)
  * @notice Implements a fixed-price token sale (raise) contract with presale and public sale phases.
@@ -298,6 +304,19 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         if (_feePercentBasisPoints > 10000) revert FeeTooHigh(_feePercentBasisPoints); // Max 100%
         if (_minTokenAllocation == 0) revert ZeroMinAllocation();
         if (_maxTokenAllocation < _minTokenAllocation) revert MaxAllocationLessThanMin(_maxTokenAllocation, _minTokenAllocation);
+
+        // IERC20Metadata validation
+        try IERC20Metadata(_token).decimals() returns (uint8 _decimals) {
+            if (_decimals == 0) revert InvalidTokenDecimals(_decimals);
+        } catch {
+            revert InvalidTokenInterface(_token);
+        }
+        
+        try IERC20Metadata(_acceptedToken).decimals() returns (uint8 _decimals) {
+            if (_decimals == 0) revert InvalidTokenDecimals(_decimals);
+        } catch {
+            revert InvalidTokenInterface(_acceptedToken);
+        }
 
         // --- Set Immutable State ---
         token = IERC20(_token);

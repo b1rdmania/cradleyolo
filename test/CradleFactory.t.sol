@@ -4,6 +4,10 @@ pragma solidity ^0.8.20;
 import {Test, console2} from "forge-std/Test.sol";
 import {CradleFactory} from "../src/CradleFactory.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol"; // Import Ownable for error reference
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {MockERC20} from "../src/MockERC20.sol";
+
 // We might need CradleRaise later if testing the deployment results more deeply
 // import {CradleRaise} from "../src/CradleRaise.sol"; 
 
@@ -14,9 +18,10 @@ contract CradleFactoryTest is Test {
     address internal user1; // A non-owner address for testing permissions
     address internal projectWallet; // The address intended to own the deployed CradleRaise
 
-    // Test deployment parameters (can be adjusted)
-    address internal dummyToken = address(0x1);
-    address internal dummyAcceptedToken = address(0x2);
+    // Use mock tokens instead of addresses
+    MockERC20 internal dummyToken; 
+    MockERC20 internal dummyAcceptedToken;
+    
     uint256 internal dummyPrice = 1 * 10**6; // e.g., 1 USDC (6 decimals)
     uint256 internal dummyPresaleStart;
     uint256 internal dummyPublicSaleStart;
@@ -40,6 +45,10 @@ contract CradleFactoryTest is Test {
         dummyPublicSaleStart = block.timestamp + 2 days;
         dummyEndTime = block.timestamp + 10 days;
 
+        // Deploy the mock tokens
+        dummyToken = new MockERC20("Test Token", "TKN", 18);
+        dummyAcceptedToken = new MockERC20("Mock USDC", "mUSDC", 6);
+        
         // Deploy the factory, making 'owner' the factory owner
         vm.prank(owner); // Subsequent calls by 'owner'
         factory = new CradleFactory(owner);
@@ -60,8 +69,8 @@ contract CradleFactoryTest is Test {
     function test_Owner_Can_CreateRaise() public {
         vm.prank(owner); // Ensure the call is made by the owner
         address newRaiseAddress = factory.createRaise(
-            dummyToken,
-            dummyAcceptedToken,
+            address(dummyToken),                // Use address of mock token
+            address(dummyAcceptedToken),        // Use address of mock accepted token
             dummyPrice,
             dummyPresaleStart,
             dummyPublicSaleStart,
@@ -89,8 +98,8 @@ contract CradleFactoryTest is Test {
         // Expect the revert with the specific address of the unauthorized caller
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user1)); 
         factory.createRaise(
-            dummyToken,
-            dummyAcceptedToken,
+            address(dummyToken),                // Use address of mock token
+            address(dummyAcceptedToken),        // Use address of mock accepted token
             dummyPrice,
             dummyPresaleStart,
             dummyPublicSaleStart,
@@ -119,15 +128,15 @@ contract CradleFactoryTest is Test {
         emit CradleFactory.RaiseCreated(
             address(0), // Placeholder ignored since checkTopic1 is false
             projectWallet, // The _raiseOwner parameter passed (checked)
-            dummyToken, // Checked in data
-            dummyAcceptedToken, // Checked in data
+            address(dummyToken), // Checked in data
+            address(dummyAcceptedToken), // Checked in data
             dummyPrice // Checked in data
         );
         
         // Execute the function that should emit the event (removed unused variable)
         factory.createRaise(
-            dummyToken,
-            dummyAcceptedToken,
+            address(dummyToken),
+            address(dummyAcceptedToken),
             dummyPrice,
             dummyPresaleStart,
             dummyPublicSaleStart,
@@ -140,23 +149,24 @@ contract CradleFactoryTest is Test {
             dummyMinAlloc,
             dummyMaxAlloc
         );
-        
-        // Optional: Further check on the emitted address if needed, but vm.expectEmit handles the structure.
-        // You could potentially capture the logs if vm.expectEmit felt insufficient.
     }
 
     /**
      * @notice Test if getDeployedRaises returns the correct list after multiple deployments.
      */
     function test_GetDeployedRaises_ReturnsCorrectList() public {
+        // Create a second set of mock tokens for the second raise
+        MockERC20 secondToken = new MockERC20("Second Token", "STKN", 18);
+        MockERC20 secondAcceptedToken = new MockERC20("Second USDC", "sUSDC", 6);
+        
         // Deploy first raise
         vm.prank(owner);
-        address raise1 = factory.createRaise(dummyToken, dummyAcceptedToken, dummyPrice, dummyPresaleStart, dummyPublicSaleStart, dummyEndTime, dummyMerkleRoot, projectWallet, dummyFeeRecipient, dummyFeeBps, dummyMaxRaise, dummyMinAlloc, dummyMaxAlloc);
+        address raise1 = factory.createRaise(address(dummyToken), address(dummyAcceptedToken), dummyPrice, dummyPresaleStart, dummyPublicSaleStart, dummyEndTime, dummyMerkleRoot, projectWallet, dummyFeeRecipient, dummyFeeBps, dummyMaxRaise, dummyMinAlloc, dummyMaxAlloc);
 
-        // Deploy second raise (can vary parameters if needed)
+        // Deploy second raise (with different tokens)
         address projectWallet2 = makeAddr("projectWallet2");
         vm.prank(owner);
-        address raise2 = factory.createRaise(address(0x11), address(0x22), dummyPrice+1, dummyPresaleStart, dummyPublicSaleStart, dummyEndTime, dummyMerkleRoot, projectWallet2, dummyFeeRecipient, dummyFeeBps, dummyMaxRaise, dummyMinAlloc, dummyMaxAlloc);
+        address raise2 = factory.createRaise(address(secondToken), address(secondAcceptedToken), dummyPrice+1, dummyPresaleStart, dummyPublicSaleStart, dummyEndTime, dummyMerkleRoot, projectWallet2, dummyFeeRecipient, dummyFeeBps, dummyMaxRaise, dummyMinAlloc, dummyMaxAlloc);
 
         // Get the list of deployed raises
         address[] memory deployed = factory.getDeployedRaises();

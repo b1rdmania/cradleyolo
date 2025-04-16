@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./CradleRaise.sol"; // Make sure CradleRaise.sol is in the same src/ directory
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * @title CradleFactory (V1)
@@ -85,7 +86,9 @@ contract CradleFactory is Ownable {
     ) external onlyOwner returns (address newRaiseAddress) { // Added explicit return variable name
         // Basic input validation - ensure the designated owner for the raise is not the zero address.
         // Most parameter validation happens within the CradleRaise constructor itself.
-        require(_raiseOwner != address(0), "CF: Zero address raise owner");
+        if (_raiseOwner == address(0)) {
+            revert ZeroAddressOwner();
+        }
 
         // Deploy new instance of CradleRaise
         CradleRaise newRaise = new CradleRaise(
