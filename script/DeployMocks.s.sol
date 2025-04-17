@@ -18,7 +18,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol"; // Needed
  *  - MOCK_TKN_ACCEPTED_DECIMALS (uint8, default 6)
  */
 contract DeployMocks is Script {
-
     uint256 constant DEFAULT_ANVIL_PRIVATE_KEY = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
 
     function run() external returns (address, address) {
@@ -29,14 +28,16 @@ contract DeployMocks is Script {
         address deployerAddress;
 
         // Determine network and select appropriate key
-        if (block.chainid == 57054) { // Sonic Testnet
+        if (block.chainid == 57054) {
+            // Sonic Testnet
             console2.log("Targeting Sonic Testnet (Chain ID 57054)");
             deployerPrivateKey = vm.envUint("TESTNET_PRIVATE_KEY");
             if (deployerPrivateKey == 0) revert("TESTNET_PRIVATE_KEY env var not set or invalid for Sonic Testnet");
             deployerAddress = vm.addr(deployerPrivateKey);
-        } else { // Default to local Anvil or other networks
+        } else {
+            // Default to local Anvil or other networks
             console2.log("Targeting local network (Chain ID: %s) or unknown network.", block.chainid);
-            uint256 localPrivateKey = vm.envUint("PRIVATE_KEY"); 
+            uint256 localPrivateKey = vm.envUint("PRIVATE_KEY");
             deployerPrivateKey = (localPrivateKey != 0) ? localPrivateKey : DEFAULT_ANVIL_PRIVATE_KEY;
             deployerAddress = vm.addr(deployerPrivateKey);
         }
@@ -54,7 +55,9 @@ contract DeployMocks is Script {
 
         console2.log("--- Deploying Mock Tokens ---");
         console2.log("  Token Sold: %s (%s) %d decimals", tokenSoldName, tokenSoldSymbol, tokenSoldDecimals);
-        console2.log("  Accepted Token: %s (%s) %d decimals", acceptedTokenName, acceptedTokenSymbol, acceptedTokenDecimals);
+        console2.log(
+            "  Accepted Token: %s (%s) %d decimals", acceptedTokenName, acceptedTokenSymbol, acceptedTokenDecimals
+        );
 
         // --- Deployment ---
         vm.startBroadcast(deployerPrivateKey);
@@ -69,4 +72,4 @@ contract DeployMocks is Script {
 
         return (address(tokenSold), address(acceptedToken));
     }
-} 
+}

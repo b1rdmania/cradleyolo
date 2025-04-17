@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./CradleRaise.sol"; // Make sure CradleRaise.sol is in the same src/ directory
+import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * @title CradleFactory (V1)
@@ -12,7 +13,6 @@ import "./CradleRaise.sol"; // Make sure CradleRaise.sol is in the same src/ dir
  * and keeps a registry of all deployed instances. V1 deployment is restricted to the factory owner.
  */
 contract CradleFactory is Ownable {
-
     // --- State Variables ---
 
     /**
@@ -66,6 +66,7 @@ contract CradleFactory is Ownable {
      * @param _maxAcceptedTokenRaise Hard cap for the sale (in `acceptedToken` base units).
      * @param _minTokenAllocation Minimum purchase amount (in `token` base units).
      * @param _maxTokenAllocation Maximum total purchase amount per wallet (in `token` base units).
+     * @param _metadataURI Metadata URI for the raise.
      * @return newRaiseAddress The address of the newly deployed `CradleRaise` contract.
      */
     function createRaise(
@@ -81,11 +82,15 @@ contract CradleFactory is Ownable {
         uint16 _feePercentBasisPoints,
         uint256 _maxAcceptedTokenRaise,
         uint256 _minTokenAllocation,
-        uint256 _maxTokenAllocation
-    ) external onlyOwner returns (address newRaiseAddress) { // Added explicit return variable name
+        uint256 _maxTokenAllocation,
+        string memory _metadataURI
+    ) external onlyOwner returns (address newRaiseAddress) {
+        // Added explicit return variable name
         // Basic input validation - ensure the designated owner for the raise is not the zero address.
         // Most parameter validation happens within the CradleRaise constructor itself.
-        require(_raiseOwner != address(0), "CF: Zero address raise owner");
+        if (_raiseOwner == address(0)) {
+            revert ZeroAddressOwner();
+        }
 
         // Deploy new instance of CradleRaise
         CradleRaise newRaise = new CradleRaise(
@@ -101,7 +106,8 @@ contract CradleFactory is Ownable {
             _feePercentBasisPoints,
             _maxAcceptedTokenRaise,
             _minTokenAllocation,
-            _maxTokenAllocation
+            _maxTokenAllocation,
+            _metadataURI
         );
 
         // Get the address of the newly deployed contract
@@ -136,4 +142,4 @@ contract CradleFactory is Ownable {
 
     // Note: Includes standard Ownable functions like owner() and transferOwnership(...)
     // These inherit NatSpec from OpenZeppelin's Ownable contract.
-} 
+}

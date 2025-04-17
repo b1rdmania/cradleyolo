@@ -4,81 +4,24 @@ pragma solidity ^0.8.20;
 import {Test, console2} from "forge-std/Test.sol";
 import {CradleFactory} from "../src/CradleFactory.sol";
 // Import errors from CradleRaise
-import { 
+import {
     CradleRaise,
     // List imported errors used in tests:
-    InvalidMerkleProof, BelowMinAllocation, ExceedsMaxAllocation, SaleNotActive,
-    ExceedsHardCap, SaleIsFinalizedOrCancelled, CancellationWindowPassed, 
-    SaleNotEnded, SaleNotFinalized
+    InvalidMerkleProof,
+    BelowMinAllocation,
+    ExceedsMaxAllocation,
+    SaleNotActive,
+    ExceedsHardCap,
+    SaleIsFinalizedOrCancelled,
+    CancellationWindowPassed,
+    SaleNotEnded,
+    SaleNotFinalized
 } from "../src/CradleRaise.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol"; // Import Ownable for error check
 import {Vm} from "forge-std/Vm.sol"; // Import Vm for Log struct
-
-// --- Minimal Mock ERC20 for testing ---
-contract MockERC20 is IERC20 {
-    using SafeERC20 for IERC20;
-
-    mapping(address => uint256) public balances;
-    mapping(address => mapping(address => uint256)) public allowances;
-    uint256 public totalSupply_;
-    string public name;
-    string public symbol;
-    uint8 public decimals_;
-
-    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
-        name = _name;
-        symbol = _symbol;
-        decimals_ = _decimals;
-    }
-
-    function decimals() external view returns (uint8) {
-        return decimals_;
-    }
-
-    function totalSupply() external view returns (uint256) {
-        return totalSupply_;
-    }
-
-    function balanceOf(address _account) external view returns (uint256) {
-        return balances[_account];
-    }
-
-    function transfer(address _recipient, uint256 _amount) external returns (bool) {
-        balances[msg.sender] -= _amount;
-        balances[_recipient] += _amount;
-        emit Transfer(msg.sender, _recipient, _amount);
-        return true;
-    }
-
-    function allowance(address _owner, address _spender) external view returns (uint256) {
-        return allowances[_owner][_spender];
-    }
-
-    function approve(address _spender, uint256 _amount) external returns (bool) {
-        allowances[msg.sender][_spender] = _amount;
-        emit Approval(msg.sender, _spender, _amount);
-        return true;
-    }
-
-    function transferFrom(address _sender, address _recipient, uint256 _amount) external returns (bool) {
-        uint256 currentAllowance = allowances[_sender][msg.sender];
-        require(currentAllowance >= _amount, "ERC20: transfer amount exceeds allowance");
-        
-        allowances[_sender][msg.sender] -= _amount;
-        balances[_sender] -= _amount;
-        balances[_recipient] += _amount;
-        emit Transfer(_sender, _recipient, _amount);
-        return true;
-    }
-
-    function mint(address _account, uint256 _amount) external {
-        balances[_account] += _amount;
-        totalSupply_ += _amount;
-        emit Transfer(address(0), _account, _amount);
-    }
-}
+import {MockERC20} from "../src/MockERC20.sol";
 
 // --- Test Contract ---
 contract CradleRaiseTest is Test {
@@ -100,17 +43,18 @@ contract CradleRaiseTest is Test {
     address internal constant user3 = address(0x3333333333333333333333333333333333333333);
 
     // Raise Parameters (adjust as needed for tests)
-    uint8   internal constant TOKEN_DECIMALS = 18;
-    uint8   internal constant ACCEPTED_TOKEN_DECIMALS = 6; // e.g., USDC
-    uint256 internal pricePerWholeToken = 1 * (10**ACCEPTED_TOKEN_DECIMALS); // Price: 1 acceptedToken per 1 whole token
+    uint8 internal constant TOKEN_DECIMALS = 18;
+    uint8 internal constant ACCEPTED_TOKEN_DECIMALS = 6; // e.g., USDC
+    uint256 internal pricePerWholeToken = 1 * (10 ** ACCEPTED_TOKEN_DECIMALS); // Price: 1 acceptedToken per 1 whole token
     uint256 internal presaleStart;
     uint256 internal publicSaleStart;
     uint256 internal endTime;
     bytes32 internal merkleRoot = bytes32(0); // Default to no presale
-    uint16  internal feeBps = 500; // 5%
-    uint256 internal maxRaiseAccepted = 100_000 * (10**ACCEPTED_TOKEN_DECIMALS); // 100k acceptedToken
-    uint256 internal minAllocToken = 100 * (10**TOKEN_DECIMALS); // 100 units of token
-    uint256 internal maxAllocToken = 1000 * (10**TOKEN_DECIMALS); // 1000 units of token
+    uint16 internal feeBps = 500; // 5%
+    uint256 internal maxRaiseAccepted = 100_000 * (10 ** ACCEPTED_TOKEN_DECIMALS); // 100k acceptedToken
+    uint256 internal minAllocToken = 100 * (10 ** TOKEN_DECIMALS); // 100 units of token
+    uint256 internal maxAllocToken = 1000 * (10 ** TOKEN_DECIMALS); // 1000 units of token
+    string internal dummyMetadataURI = "bafkreid5a25llee6myqfbtzs3f3rp7hzshsklonpfearloojzfdutfjaru";
 
     // Correct root derived from manual check in test: 0x4beda981c9d34f2dd099131be6049a1d87676d227e63f4a409ee629043314b4f
     bytes32 constant TEST_MERKLE_ROOT = 0x4beda981c9d34f2dd099131be6049a1d87676d227e63f4a409ee629043314b4f;
@@ -128,11 +72,20 @@ contract CradleRaiseTest is Test {
 
         vm.prank(factoryOwner);
         address specificRaiseAddress = factory.createRaise(
-            address(token), address(acceptedToken), pricePerWholeToken,
-            _presaleStart, _publicSaleStart, _endTime, // Future times
+            address(token),
+            address(acceptedToken),
+            pricePerWholeToken,
+            _presaleStart,
+            _publicSaleStart,
+            _endTime, // Future times
             TEST_MERKLE_ROOT, // Use the pre-calculated root
-            projectWallet, feeRecipient, feeBps,
-            maxRaiseAccepted, minAllocToken, maxAllocToken
+            projectWallet,
+            feeRecipient,
+            feeBps,
+            maxRaiseAccepted,
+            minAllocToken,
+            maxAllocToken,
+            dummyMetadataURI
         );
         CradleRaise presaleRaise = CradleRaise(payable(specificRaiseAddress));
 
@@ -155,7 +108,7 @@ contract CradleRaiseTest is Test {
         vm.warp(presaleRaise.presaleStart() + 1 seconds);
 
         uint256 amountToBuy = minAllocToken;
-        uint256 expectedAccepted = (amountToBuy * pricePerWholeToken) / (10**TOKEN_DECIMALS);
+        uint256 expectedAccepted = (amountToBuy * pricePerWholeToken) / (10 ** TOKEN_DECIMALS);
 
         uint256 initialUserBalance = acceptedToken.balanceOf(user1);
         uint256 initialRaiseBalance = acceptedToken.balanceOf(address(presaleRaise));
@@ -164,8 +117,16 @@ contract CradleRaiseTest is Test {
         bytes32 leafUser1 = keccak256(abi.encodePacked(user1));
         bytes32 leafUser2 = keccak256(abi.encodePacked(user2));
         // Check against expected values just in case
-        assertEq(leafUser1, bytes32(0xe2c07404b8c1df4c46226425cac68c28d27a766bbddce62309f36724839b22c0), "Leaf User 1 mismatch");
-        assertEq(leafUser2, bytes32(0x2ab0a4443bbea3fbe4d0e1503d11ff1367842fb0c8b28a5c8550f27599a40751), "Leaf User 2 mismatch");
+        assertEq(
+            leafUser1,
+            bytes32(0xe2c07404b8c1df4c46226425cac68c28d27a766bbddce62309f36724839b22c0),
+            "Leaf User 1 mismatch"
+        );
+        assertEq(
+            leafUser2,
+            bytes32(0x2ab0a4443bbea3fbe4d0e1503d11ff1367842fb0c8b28a5c8550f27599a40751),
+            "Leaf User 2 mismatch"
+        );
 
         // Construct proof for user1 dynamically
         bytes32[] memory dynamicProofUser1 = new bytes32[](1);
@@ -185,13 +146,14 @@ contract CradleRaiseTest is Test {
         bytes32 expectedTopic0 = keccak256("Contributed(address,uint256,uint256)");
         bytes32 expectedTopic1 = bytes32(uint256(uint160(user1))); // Address padded
 
-        for (uint i = 0; i < entries.length; i++) {
-            if (entries[i].topics.length > 1 && // Ensure topic1 exists
-                entries[i].topics[0] == expectedTopic0 && 
-                entries[i].topics[1] == expectedTopic1 && // Check contributor topic
-                entries[i].emitter == address(presaleRaise)) 
-            {
-                (uint256 emittedTokenAmount, uint256 emittedAcceptedAmount) = abi.decode(entries[i].data, (uint256, uint256));
+        for (uint256 i = 0; i < entries.length; i++) {
+            if (
+                entries[i].topics.length > 1 // Ensure topic1 exists
+                    && entries[i].topics[0] == expectedTopic0 && entries[i].topics[1] == expectedTopic1 // Check contributor topic
+                    && entries[i].emitter == address(presaleRaise)
+            ) {
+                (uint256 emittedTokenAmount, uint256 emittedAcceptedAmount) =
+                    abi.decode(entries[i].data, (uint256, uint256));
                 assertEq(emittedTokenAmount, amountToBuy, "Log Data: Token Amount Mismatch");
                 assertEq(emittedAcceptedAmount, expectedAccepted, "Log Data: Accepted Amount Mismatch");
                 break;
@@ -200,10 +162,16 @@ contract CradleRaiseTest is Test {
                 fail(); // Fail unconditionally if event not found
             }
         }
-        
+
         // Assert State Changes
-        assertEq(acceptedToken.balanceOf(user1), initialUserBalance - expectedAccepted, "Presale: User balance incorrect");
-        assertEq(acceptedToken.balanceOf(address(presaleRaise)), initialRaiseBalance + expectedAccepted, "Presale: Raise balance incorrect");
+        assertEq(
+            acceptedToken.balanceOf(user1), initialUserBalance - expectedAccepted, "Presale: User balance incorrect"
+        );
+        assertEq(
+            acceptedToken.balanceOf(address(presaleRaise)),
+            initialRaiseBalance + expectedAccepted,
+            "Presale: Raise balance incorrect"
+        );
         assertEq(presaleRaise.contributions(user1), amountToBuy, "Presale: User contribution incorrect");
     }
 
@@ -246,7 +214,7 @@ contract CradleRaiseTest is Test {
 
         // Act
         vm.prank(nonWhitelistedUser);
-        presaleRaise.contribute(amountToBuy, new bytes32[](0)); 
+        presaleRaise.contribute(amountToBuy, new bytes32[](0));
     }
 
     // TODO: Add more presale tests...
@@ -255,7 +223,7 @@ contract CradleRaiseTest is Test {
     // Test Setup
     function setUp() public virtual {
         console2.log("--- Starting setUp ---");
-        
+
         // Ensure block.timestamp is reasonable before adding to it
         vm.warp(10 days); // Initial timestamp = 864000
         console2.log("Warped block.timestamp to:", block.timestamp);
@@ -295,14 +263,15 @@ contract CradleRaiseTest is Test {
             feeBps,
             maxRaiseAccepted,
             minAllocToken,
-            maxAllocToken
+            maxAllocToken,
+            dummyMetadataURI
         );
         raise = CradleRaise(payable(raiseAddress)); // Get instance of deployed raise
         console2.log("CradleRaise deployed at:", raiseAddress);
 
         // 5. Mint AcceptedToken to Users
         console2.log("Minting accepted tokens to users...");
-        uint256 userInitialBalance = 5000 * (10**ACCEPTED_TOKEN_DECIMALS); // Give users 5k acceptedToken
+        uint256 userInitialBalance = 5000 * (10 ** ACCEPTED_TOKEN_DECIMALS); // Give users 5k acceptedToken
         acceptedToken.mint(user1, userInitialBalance);
         acceptedToken.mint(user2, userInitialBalance);
         acceptedToken.mint(user3, userInitialBalance);
@@ -366,9 +335,9 @@ contract CradleRaiseTest is Test {
     function test_PublicContribute_Success() public {
         // Arrange
         vm.warp(publicSaleStart);
-        uint256 tokenAmountToBuy = 150 * (10**TOKEN_DECIMALS); // Between min (100) and max (1000)
+        uint256 tokenAmountToBuy = 150 * (10 ** TOKEN_DECIMALS); // Between min (100) and max (1000)
         // Calculate expected accepted token amount based on contract's logic
-        uint256 expectedAcceptedToken = (tokenAmountToBuy * pricePerWholeToken) / (10**TOKEN_DECIMALS);
+        uint256 expectedAcceptedToken = (tokenAmountToBuy * pricePerWholeToken) / (10 ** TOKEN_DECIMALS);
 
         uint256 initialUserBalance = acceptedToken.balanceOf(user1);
         uint256 initialRaiseBalance = acceptedToken.balanceOf(address(raise));
@@ -387,7 +356,11 @@ contract CradleRaiseTest is Test {
         // Assert
         // Balances
         assertEq(acceptedToken.balanceOf(user1), initialUserBalance - expectedAcceptedToken, "User balance incorrect");
-        assertEq(acceptedToken.balanceOf(address(raise)), initialRaiseBalance + expectedAcceptedToken, "Raise balance incorrect");
+        assertEq(
+            acceptedToken.balanceOf(address(raise)),
+            initialRaiseBalance + expectedAcceptedToken,
+            "Raise balance incorrect"
+        );
 
         // Contract State
         assertEq(raise.totalAcceptedTokenRaised(), initialTotalRaised + expectedAcceptedToken, "Total raised incorrect");
@@ -486,7 +459,7 @@ contract CradleRaiseTest is Test {
 
     function test_Fail_Contribute_ExceedsHardCap() public {
         // Arrange: Deploy a new raise with a specific low hard cap for this test
-        uint256 specificMaxRaise = 150 * (10**ACCEPTED_TOKEN_DECIMALS); // 150 USDC
+        uint256 specificMaxRaise = 150 * (10 ** ACCEPTED_TOKEN_DECIMALS); // 150 USDC
         // Use other standard parameters from setUp
         vm.prank(factoryOwner);
         address specificRaiseAddress = factory.createRaise(
@@ -502,7 +475,8 @@ contract CradleRaiseTest is Test {
             feeBps,
             specificMaxRaise, // Override hard cap
             minAllocToken, // Standard min/max per user
-            maxAllocToken
+            maxAllocToken,
+            dummyMetadataURI
         );
         CradleRaise specificRaise = CradleRaise(payable(specificRaiseAddress));
 
@@ -518,11 +492,18 @@ contract CradleRaiseTest is Test {
         // minAllocToken = 100 * 10**18
         vm.prank(user1);
         specificRaise.contribute(minAllocToken, new bytes32[](0));
-        assertEq(specificRaise.totalAcceptedTokenRaised(), 100 * (10**ACCEPTED_TOKEN_DECIMALS));
+        assertEq(specificRaise.totalAcceptedTokenRaised(), 100 * (10 ** ACCEPTED_TOKEN_DECIMALS));
 
         // Act & Assert: User 2 attempts to contribute 100 TKN (requires 100 USDC)
         // Total would be 200 USDC, exceeding the 150 USDC cap.
-        vm.expectRevert(abi.encodeWithSelector(ExceedsHardCap.selector, 100 * (10**ACCEPTED_TOKEN_DECIMALS), 100 * (10**ACCEPTED_TOKEN_DECIMALS), specificMaxRaise));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExceedsHardCap.selector,
+                100 * (10 ** ACCEPTED_TOKEN_DECIMALS),
+                100 * (10 ** ACCEPTED_TOKEN_DECIMALS),
+                specificMaxRaise
+            )
+        );
         vm.prank(user2);
         specificRaise.contribute(minAllocToken, new bytes32[](0));
     }
@@ -571,18 +552,20 @@ contract CradleRaiseTest is Test {
 
         // Expect revert with custom error
         // error CancellationWindowPassed(uint256 currentTime, uint256 presaleStart);
-        vm.expectRevert(abi.encodeWithSelector(
-            CancellationWindowPassed.selector,
-            block.timestamp, // Current time after warp
-            raise.presaleStart()
-        ));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CancellationWindowPassed.selector,
+                block.timestamp, // Current time after warp
+                raise.presaleStart()
+            )
+        );
 
         // Act
         vm.prank(projectWallet); // Call as owner
         raise.cancelSale();
     }
 
-     function test_CancelSale_PreventsContribution() public {
+    function test_CancelSale_PreventsContribution() public {
         // Arrange
         assertTrue(block.timestamp < raise.presaleStart(), "Timestamp not before presale start");
         vm.prank(projectWallet);
@@ -613,7 +596,7 @@ contract CradleRaiseTest is Test {
         assertTrue(raise.isCancelled(), "Raise should be marked as cancelled");
 
         // Warp time past end time (doesn't really matter as it's cancelled)
-        vm.warp(raise.endTime() + 1 days); 
+        vm.warp(raise.endTime() + 1 days);
 
         // Expect revert because sale is cancelled
         // error SaleNotFinalized(); (Sweep checks !isFinalized || isCancelled)
@@ -634,7 +617,7 @@ contract CradleRaiseTest is Test {
         // Expect event emission
         // event RaiseFinalized(uint256 timestamp);
         vm.expectEmit(true, false, false, true); // Check emitter address only
-        emit CradleRaise.RaiseFinalized(block.timestamp); 
+        emit CradleRaise.RaiseFinalized(block.timestamp);
 
         // Act
         vm.prank(projectWallet); // Call as owner
@@ -645,7 +628,7 @@ contract CradleRaiseTest is Test {
         assertFalse(raise.isCancelled(), "Raise should not be marked as cancelled");
     }
 
-     function test_Fail_FinalizeRaise_NotOwner() public {
+    function test_Fail_FinalizeRaise_NotOwner() public {
         // Arrange: Warp time to after endTime
         vm.warp(raise.endTime() + 1 seconds);
 
@@ -663,11 +646,7 @@ contract CradleRaiseTest is Test {
 
         // Expect revert with custom error
         // error SaleNotEnded(uint256 currentTime, uint256 endTime);
-        vm.expectRevert(abi.encodeWithSelector(
-            SaleNotEnded.selector,
-            block.timestamp, 
-            raise.endTime()
-        ));
+        vm.expectRevert(abi.encodeWithSelector(SaleNotEnded.selector, block.timestamp, raise.endTime()));
 
         // Act
         vm.prank(projectWallet); // Call as owner
@@ -679,9 +658,9 @@ contract CradleRaiseTest is Test {
     function test_Sweep_Success() public {
         // Arrange: Contribute some funds first
         vm.warp(raise.publicSaleStart() + 1 seconds); // Warp to public sale
-        uint256 amountToBuy = minAllocToken; 
-        uint256 requiredAccepted = (amountToBuy * pricePerWholeToken) / (10**TOKEN_DECIMALS);
-        
+        uint256 amountToBuy = minAllocToken;
+        uint256 requiredAccepted = (amountToBuy * pricePerWholeToken) / (10 ** TOKEN_DECIMALS);
+
         vm.startPrank(user1);
         acceptedToken.approve(address(raise), requiredAccepted);
         raise.contribute(amountToBuy, new bytes32[](0));
@@ -717,14 +696,22 @@ contract CradleRaiseTest is Test {
         raise.sweep();
 
         // Assert balances after sweep
-        assertEq(acceptedToken.balanceOf(projectWallet), initialOwnerBalance + expectedProjectAmount, "Owner balance incorrect after sweep");
-        assertEq(acceptedToken.balanceOf(feeRecipient), initialFeeRecipientBalance + expectedFee, "Fee recipient balance incorrect after sweep");
+        assertEq(
+            acceptedToken.balanceOf(projectWallet),
+            initialOwnerBalance + expectedProjectAmount,
+            "Owner balance incorrect after sweep"
+        );
+        assertEq(
+            acceptedToken.balanceOf(feeRecipient),
+            initialFeeRecipientBalance + expectedFee,
+            "Fee recipient balance incorrect after sweep"
+        );
         assertEq(acceptedToken.balanceOf(address(raise)), 0, "Raise contract should be empty after sweep");
     }
 
     function test_Sweep_Success_ZeroContributions() public {
-         // Arrange: No contributions made
-        
+        // Arrange: No contributions made
+
         // Finalize the raise
         vm.warp(raise.endTime() + 1 seconds);
         vm.prank(projectWallet);
@@ -751,7 +738,11 @@ contract CradleRaiseTest is Test {
 
         // Assert balances after sweep (should be unchanged)
         assertEq(acceptedToken.balanceOf(projectWallet), initialOwnerBalance, "Owner balance should be unchanged");
-        assertEq(acceptedToken.balanceOf(feeRecipient), initialFeeRecipientBalance, "Fee recipient balance should be unchanged");
+        assertEq(
+            acceptedToken.balanceOf(feeRecipient),
+            initialFeeRecipientBalance,
+            "Fee recipient balance should be unchanged"
+        );
         assertEq(acceptedToken.balanceOf(address(raise)), 0, "Raise contract should remain empty");
     }
 
@@ -765,7 +756,7 @@ contract CradleRaiseTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, user1));
 
         // Act: Try to sweep as non-owner
-        vm.prank(user1); 
+        vm.prank(user1);
         raise.sweep();
     }
 
@@ -783,20 +774,20 @@ contract CradleRaiseTest is Test {
         raise.sweep();
     }
 
-     function test_Fail_Sweep_Cancelled() public {
+    function test_Fail_Sweep_Cancelled() public {
         // Arrange: Cancel the sale first
         assertTrue(block.timestamp < raise.presaleStart(), "Timestamp not before presale start");
         vm.prank(projectWallet);
-        raise.cancelSale(); 
+        raise.cancelSale();
 
         assertTrue(raise.isFinalized(), "Raise should be finalized after cancellation");
         assertTrue(raise.isCancelled(), "Raise should be marked as cancelled");
-        
+
         // Warp time after end (doesn't strictly matter)
         vm.warp(raise.endTime() + 1 seconds);
 
         // Expect revert with custom error because isCancelled is true
-        // error SaleNotFinalized(); 
+        // error SaleNotFinalized();
         vm.expectRevert(SaleNotFinalized.selector);
 
         // Act: Try to sweep as owner
@@ -817,7 +808,7 @@ contract CradleRaiseTest is Test {
         uint256 _pricePerToken // Price already scaled by accepted token decimals
     ) internal pure returns (uint256) {
         require(_tokenDecimals > 0 && _tokenDecimals <= 36, "Test Calc: Invalid token decimals");
-        uint256 denominator = 10**_tokenDecimals;
+        uint256 denominator = 10 ** _tokenDecimals;
         if (_tokenAmountToBuy == 0) {
             return 0;
         }
@@ -829,7 +820,7 @@ contract CradleRaiseTest is Test {
         numerator = _tokenAmountToBuy * _pricePerToken;
         uint256 requiredAcceptedToken = numerator / denominator;
         // Ensure calculation result is non-zero if input amount is non-zero
-        require(requiredAcceptedToken > 0, "Test Calc: Calc amount is zero"); 
+        require(requiredAcceptedToken > 0, "Test Calc: Calc amount is zero");
         return requiredAcceptedToken;
     }
-} 
+}
