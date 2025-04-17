@@ -54,6 +54,7 @@ contract CradleRaiseTest is Test {
     uint256 internal maxRaiseAccepted = 100_000 * (10 ** ACCEPTED_TOKEN_DECIMALS); // 100k acceptedToken
     uint256 internal minAllocToken = 100 * (10 ** TOKEN_DECIMALS); // 100 units of token
     uint256 internal maxAllocToken = 1000 * (10 ** TOKEN_DECIMALS); // 1000 units of token
+    string internal dummyMetadataURI = "bafkreid5a25llee6myqfbtzs3f3rp7hzshsklonpfearloojzfdutfjaru";
 
     // Correct root derived from manual check in test: 0x4beda981c9d34f2dd099131be6049a1d87676d227e63f4a409ee629043314b4f
     bytes32 constant TEST_MERKLE_ROOT = 0x4beda981c9d34f2dd099131be6049a1d87676d227e63f4a409ee629043314b4f;
@@ -83,7 +84,8 @@ contract CradleRaiseTest is Test {
             feeBps,
             maxRaiseAccepted,
             minAllocToken,
-            maxAllocToken
+            maxAllocToken,
+            dummyMetadataURI
         );
         CradleRaise presaleRaise = CradleRaise(payable(specificRaiseAddress));
 
@@ -261,7 +263,8 @@ contract CradleRaiseTest is Test {
             feeBps,
             maxRaiseAccepted,
             minAllocToken,
-            maxAllocToken
+            maxAllocToken,
+            dummyMetadataURI
         );
         raise = CradleRaise(payable(raiseAddress)); // Get instance of deployed raise
         console2.log("CradleRaise deployed at:", raiseAddress);
@@ -472,7 +475,8 @@ contract CradleRaiseTest is Test {
             feeBps,
             specificMaxRaise, // Override hard cap
             minAllocToken, // Standard min/max per user
-            maxAllocToken
+            maxAllocToken,
+            dummyMetadataURI
         );
         CradleRaise specificRaise = CradleRaise(payable(specificRaiseAddress));
 

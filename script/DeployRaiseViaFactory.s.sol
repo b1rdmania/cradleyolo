@@ -101,6 +101,9 @@ contract DeployRaiseViaFactory is Script {
         uint256 maxAllocTokenScaled = vm.envUint("RAISE_MAX_ALLOC_TOKEN_SCALED");
         if (maxAllocTokenScaled == 0) revert("RAISE_MAX_ALLOC_TOKEN_SCALED must be set in .env");
 
+        string memory metadataURI = vm.envString("RAISE_METADATA_URI");
+        if (bytes(metadataURI).length == 0) revert("RAISE_METADATA_URI must be set in .env");
+
         // Calculate absolute timestamps
         uint256 currentTime = block.timestamp;
         uint256 presaleStartTime = currentTime + presaleStartOffset;
@@ -139,7 +142,8 @@ contract DeployRaiseViaFactory is Script {
             feeBps,
             maxRaiseAcceptedScaled,
             minAllocTokenScaled,
-            maxAllocTokenScaled
+            maxAllocTokenScaled,
+            metadataURI
         );
 
         vm.stopBroadcast();

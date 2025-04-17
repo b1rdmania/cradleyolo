@@ -142,6 +142,16 @@ error ContributionCalculationZero(uint256 tokenAmountToBuy);
  * @param tokenAddress The address of the token for which the interface is invalid.
  */
 error InvalidTokenInterface(address tokenAddress);
+/**
+ * @dev Reverts if the metadata URI is invalid.
+ * @param metadataURI The metadata URI to validate.
+ */
+error InvalidMetadataURI(string metadataURI);
+
+/**
+ * @dev Reverts if sweep() is called more than once.
+ */
+error AlreadySwept();
 
 /**
  * @title CradleRaise (V1)
@@ -232,6 +242,15 @@ contract CradleRaise is Ownable, ReentrancyGuard {
      * If true, `isFinalized` will also be true, but sweeping funds is blocked.
      */
     bool public isCancelled; // Differentiate between cancelled and normally finalized
+    /**
+     * @notice The metadata URI for the raise.
+     */
+    string public metadataURI;
+    /**
+     * @notice Flag indicating if the sale funds have been swept.
+     * @dev Once true, the sweep function cannot be called again.
+     */
+    bool public isSwept;
 
     // --- Events ---
 
@@ -257,6 +276,11 @@ contract CradleRaise is Ownable, ReentrancyGuard {
      * @notice Emitted when the sale is cancelled by the owner *before* the `presaleStart` time.
      */
     event SaleCancelled(uint256 timestamp);
+    /**
+     * @notice Emitted when the metadata URI is updated.
+     * @param newMetadataURI The new metadata URI.
+     */
+    event MetadataURIUpdated(address indexed raiseAddress, string newMetadataURI);
 
     // --- Constructor ---
 
@@ -291,7 +315,8 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         uint16 _feePercentBasisPoints,
         uint256 _maxAcceptedTokenRaise,
         uint256 _minTokenAllocation, // In token base units
-        uint256 _maxTokenAllocation // In token base units
+        uint256 _maxTokenAllocation, // In token base units
+        string memory _metadataURI
     ) Ownable(_owner) {
         // Sets the initial owner to the provided _owner address
         // --- Input Validation ---
@@ -308,6 +333,9 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         if (_minTokenAllocation == 0) revert ZeroMinAllocation();
         if (_maxTokenAllocation < _minTokenAllocation) {
             revert MaxAllocationLessThanMin(_maxTokenAllocation, _minTokenAllocation);
+        }
+        if (bytes(_metadataURI).length < 1) {
+            revert InvalidMetadataURI(_metadataURI);
         }
 
         // IERC20Metadata validation
@@ -336,6 +364,7 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         maxAcceptedTokenRaise = _maxAcceptedTokenRaise;
         minTokenAllocation = _minTokenAllocation;
         maxTokenAllocation = _maxTokenAllocation;
+        metadataURI = _metadataURI;
     }
 
     // --- External Functions ---
@@ -435,10 +464,14 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         // Ensure the sale ended normally and was finalized, not cancelled
         if (!isFinalized || isCancelled) revert SaleNotFinalized();
 
+        // Prevent multiple sweeps
+        if (isSwept) revert AlreadySwept();
+
         uint256 totalRaised = totalAcceptedTokenRaised; // Cache storage reads
 
         // If nothing was raised, there's nothing to sweep.
         if (totalRaised == 0) {
+            isSwept = true; // Still mark as swept
             emit RaiseSwept(0, 0, 0);
             return;
         }
@@ -457,6 +490,7 @@ contract CradleRaise is Ownable, ReentrancyGuard {
             acceptedToken.safeTransfer(owner(), projectAmount); // owner() is from Ownable
         }
 
+        isSwept = true; // Mark as swept after transfers
         emit RaiseSwept(totalRaised, feeAmount, projectAmount);
     }
 
@@ -529,6 +563,16 @@ contract CradleRaise is Ownable, ReentrancyGuard {
         if (requiredAcceptedToken == 0 && _tokenAmountToBuy > 0) {
             revert ContributionCalculationZero(_tokenAmountToBuy);
         }
+    }
+
+    // --- Update Metadata URI Function ---
+    /**
+     * @notice Allows the owner to update the metadata URI for the raise.
+     * @param newMetadataURI The new metadata URI to set.
+     */
+    function updateMetadataURI(string memory newMetadataURI) external onlyOwner {
+        metadataURI = newMetadataURI;
+        emit MetadataURIUpdated(address(this), newMetadataURI);
     }
 
     /**

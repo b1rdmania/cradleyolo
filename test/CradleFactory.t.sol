@@ -32,6 +32,7 @@ contract CradleFactoryTest is Test {
     uint256 internal dummyMaxRaise = 100_000 * 10 ** 6; // e.g., 100k USDC
     uint256 internal dummyMinAlloc = 100 * 10 ** 18; // e.g., 100 Tokens (18 decimals)
     uint256 internal dummyMaxAlloc = 1000 * 10 ** 18; // e.g., 1000 Tokens (18 decimals)
+    string internal dummyMetadataURI = "bafkreid5a25llee6myqfbtzs3f3rp7hzshsklonpfearloojzfdutfjaru";
 
     // --- Setup ---
 
@@ -81,7 +82,8 @@ contract CradleFactoryTest is Test {
             dummyFeeBps,
             dummyMaxRaise,
             dummyMinAlloc,
-            dummyMaxAlloc
+            dummyMaxAlloc,
+            dummyMetadataURI
         );
         assertTrue(newRaiseAddress != address(0), "createRaise should return a non-zero address");
         // Further checks: Does deployedRaises array contain the address?
@@ -110,7 +112,8 @@ contract CradleFactoryTest is Test {
             dummyFeeBps,
             dummyMaxRaise,
             dummyMinAlloc,
-            dummyMaxAlloc
+            dummyMaxAlloc,
+            dummyMetadataURI
         );
     }
 
@@ -147,7 +150,8 @@ contract CradleFactoryTest is Test {
             dummyFeeBps,
             dummyMaxRaise,
             dummyMinAlloc,
-            dummyMaxAlloc
+            dummyMaxAlloc,
+            dummyMetadataURI
         );
     }
 
@@ -174,7 +178,8 @@ contract CradleFactoryTest is Test {
             dummyFeeBps,
             dummyMaxRaise,
             dummyMinAlloc,
-            dummyMaxAlloc
+            dummyMaxAlloc,
+            dummyMetadataURI
         );
 
         // Deploy second raise (with different tokens)
@@ -193,7 +198,8 @@ contract CradleFactoryTest is Test {
             dummyFeeBps,
             dummyMaxRaise,
             dummyMinAlloc,
-            dummyMaxAlloc
+            dummyMaxAlloc,
+            dummyMetadataURI
         );
 
         // Get the list of deployed raises
